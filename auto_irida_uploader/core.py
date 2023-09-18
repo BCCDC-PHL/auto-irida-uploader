@@ -69,6 +69,31 @@ def find_run_dirs(config, check_upload_complete=True):
             yield None
 
 
+
+def validate_samplelist(config, run):
+    """
+    Validate the sample list for a run.
+
+    :param config: Application config.
+    :type config: dict[str, object]
+    :param run: Run directory. Keys: ['sequencing_run_id', 'path', 'instrument_type']
+    :type run: dict[str, str]
+    """
+    samplelist_path = os.path.join(run['path'], 'SampleList.csv')
+    samplelist_is_valid = False
+    if os.path.exists(samplelist_path):
+        with open(samplelist_path, 'r') as samplelist_file:
+            header_line = samplelist_file.readline()
+            header_line = header_line.strip()
+            header_line = header_line.replace('"', '')
+            header_line = header_line.replace("'", '')
+            if header_line == '[Data]':
+                samplelist_is_valid = True
+                logging.info(json.dumps({"event_type": "samplelist_valid", "sequencing_run_id": run['sequencing_run_id'], "samplelist_path": samplelist_path}))
+    else:
+        logging.error(json.dumps({"event_type": "samplelist_missing", "sequencing_run_id": run['sequencing_run_id'], "samplelist_path": samplelist_path}))
+            
+
 def scan(config: dict[str, object]) -> Iterator[Optional[dict[str, object]]]:
     """
     Scanning involves looking for all existing runs and storing them to the database,
@@ -85,63 +110,29 @@ def scan(config: dict[str, object]) -> Iterator[Optional[dict[str, object]]]:
         yield run_dir
         
 
-def upload_run(config, run, upload_dir):
+def upload_run(config, run):
     """
     Initiate an analysis on one directory of fastq files.
     """
     run_id = run['sequencing_run_id']
+    upload_dir = run['path']
     upload_successful = False
-    upload_id = str(uuid.uuid4())
 
-    upload_url = '/'.join([
-        config['container_url'],
-        upload_id,
-        config['sas_token'],
-    ])
-
-    azcopy_command = [
-        'azcopy',
-        'cp',
-        '--put-md5',
-        '--recursive',
-        '--follow-symlinks',
-        '--output-type', 'json',
-        '--from-to=LocalBlob',
-        '--metadata=upload_id=' + upload_id,
-        '--exclude-pattern=*NML_Upload_Finished*',
-        upload_dir,
-        upload_url,        
+    irida_uploader_command = [
+        'irida-uploader',
+        '--config_base_url', config['irida_base_url'],
+        '--config_username', config['irida_username'],
+        '--config_password', config['irida_password'],
+        '--config_client_id', config['irida_client_id'],
+        '--config_client_secret', config['irida_client_secret'],
+        '--config_parser', config['parser'],
+        '--directory', upload_dir,
     ]
 
-    logging.info(json.dumps({"event_type": "upload_started", "sequencing_run_id": run_id, "azcopy_command": " ".join(azcopy_command)}))
+    logging.info(json.dumps({"event_type": "upload_started", "sequencing_run_id": run_id, "irida_uploader_command": " ".join(irida_uploader_command)}))
     try:
-        subprocess.run(azcopy_command, capture_output=False, check=True)
+        subprocess.run(irida_uploader_command, capture_output=True, check=True, text=True)
         upload_successful = True
-        time.sleep(5)
-        logging.info(json.dumps({"event_type": "upload_completed", "sequencing_run_id": run_id, "azcopy_command": " ".join(azcopy_command)}))
+        logging.info(json.dumps({"event_type": "upload_completed", "sequencing_run_id": run_id, "irida_uploader_command": " ".join(irida_uploader_command)}))
     except subprocess.CalledProcessError as e:
-        logging.error(json.dumps({"event_type": "upload_failed", "sequencing_run_id": run_id, "azcopy_command": " ".join(azcopy_command)}))
-
-    if upload_successful:
-        upload_complete_file_contents = {"action": "UPLOAD", "result": upload_successful, "job_id": upload_id}
-        upload_complete_filename = upload_id + "-NML_Upload_Finished.json"
-        upload_complete_path = os.path.join(upload_dir, upload_complete_filename)
-        with open(upload_complete_path, "w", encoding="utf-8") as f:
-            json.dump(upload_complete_file_contents, f)
-
-        upload_url = config['container_url'] + config['sas_token']
-
-        azcopy_command = [
-            'azcopy',
-            'cp',
-            '--output-type', 'json',
-            '--from-to=LocalBlob',
-            upload_complete_path,
-            upload_url,
-        ]
-
-        try:
-            subprocess.run(azcopy_command, capture_output=False, check=True)
-            logging.info(json.dumps({"event_type": "upload_confirmation_completed", "sequencing_run_id": run_id, "azcopy_command": " ".join(azcopy_command)}))
-        except subprocess.CalledProcessError as e:
-            logging.error(json.dumps({"event_type": "upload_confirmation_failed", "sequencing_run_id": run_id, "azcopy_command": " ".join(azcopy_command)}))
+        logging.error(json.dumps({"event_type": "upload_failed", "sequencing_run_id": run_id, "irida_uploader_command": " ".join(irida_uploader_command)}))
