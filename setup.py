@@ -14,7 +14,7 @@ setup(
     package_data={
     },
     install_requires=[
-        'iridauploader>=0.9.2',
+        'iridauploader<0.9.0',
     ],
     description='Automated upload of sequence data to IRIDA, using the irida-uploader tool.',
     url='https://github.com/BCCDC-PHL/auto-irida-uploader',

@@ -25,10 +25,10 @@ def find_run_dirs(config, check_upload_complete=True):
     """
     miseq_run_id_regex = "\d{6}_M\d{5}_\d+_\d{9}-[A-Z0-9]{5}"
     nextseq_run_id_regex = "\d{6}_VH\d{5}_\d+_[A-Z0-9]{9}"
-    run_parent_dirs = config['run_parent_dirs']
+    runs_to_upload_dirs = [config['runs_to_upload_dir']]
 
-    for run_parent_dir in run_parent_dirs:
-        subdirs = os.scandir(run_parent_dir)
+    for runs_to_upload_dir in runs_to_upload_dirs:
+        subdirs = os.scandir(runs_to_upload_dir)
 
         for subdir in subdirs:
             run_id = subdir.name
@@ -39,8 +39,13 @@ def find_run_dirs(config, check_upload_complete=True):
                 instrument_type = 'miseq'
             elif matches_nextseq_regex:
                 instrument_type = 'nextseq'
-            ready_to_upload = os.path.exists(os.path.join(subdir, 'upload_complete.json'))
-            upload_not_already_initiated = not os.path.exists(os.path.join(config['upload_staging_dir'], run_id))
+            ready_to_upload = True # Replace this with specific logic, need to coordinate with auto-irida-azure-upload tool.
+
+            not_already_uploaded = True
+            irida_uploader_status_path = os.path.join(subdir.path, 'irida_uploader_status.info')
+            if os.path.exists(irida_uploader_status_path):
+                not_already_uploaded = False
+            
             not_excluded = True
             if 'excluded_runs' in config:
                 not_excluded = not run_id in config['excluded_runs']
@@ -49,7 +54,8 @@ def find_run_dirs(config, check_upload_complete=True):
                 "is_directory": subdir.is_dir(),
                 "matches_illumina_run_id_format": ((matches_miseq_regex is not None) or
                                                    (matches_nextseq_regex is not None)),
-                "upload_not_already_initiated": upload_not_already_initiated,
+                "ready_to_upload": ready_to_upload,
+                "not_already_uploaded": not_already_uploaded,
                 "not_excluded": not_excluded,
             }
 
@@ -78,6 +84,8 @@ def validate_samplelist(config, run):
     :type config: dict[str, object]
     :param run: Run directory. Keys: ['sequencing_run_id', 'path', 'instrument_type']
     :type run: dict[str, str]
+    :return: True if the sample list is valid, False otherwise.
+    :rtype: bool
     """
     samplelist_path = os.path.join(run['path'], 'SampleList.csv')
     samplelist_is_valid = False
@@ -92,6 +100,8 @@ def validate_samplelist(config, run):
                 logging.info(json.dumps({"event_type": "samplelist_valid", "sequencing_run_id": run['sequencing_run_id'], "samplelist_path": samplelist_path}))
     else:
         logging.error(json.dumps({"event_type": "samplelist_missing", "sequencing_run_id": run['sequencing_run_id'], "samplelist_path": samplelist_path}))
+
+    return samplelist_is_valid
             
 
 def scan(config: dict[str, object]) -> Iterator[Optional[dict[str, object]]]:
@@ -131,7 +141,7 @@ def upload_run(config, run):
 
     logging.info(json.dumps({"event_type": "upload_started", "sequencing_run_id": run_id, "irida_uploader_command": " ".join(irida_uploader_command)}))
     try:
-        subprocess.run(irida_uploader_command, capture_output=True, check=True, text=True)
+        subprocess.run(irida_uploader_command, capture_output=False, check=True, text=True)
         upload_successful = True
         logging.info(json.dumps({"event_type": "upload_completed", "sequencing_run_id": run_id, "irida_uploader_command": " ".join(irida_uploader_command)}))
     except subprocess.CalledProcessError as e:
