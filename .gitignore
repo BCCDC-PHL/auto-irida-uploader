@@ -1,0 +1,7 @@
+*~
+dev-config.json
+test-config.json
+projects.csv
+excluded_runs.csv
+*.egg-info
+*.pyc

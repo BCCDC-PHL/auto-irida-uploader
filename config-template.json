@@ -1,0 +1,11 @@
+{
+    "excluded_runs_list": "/path/to/excluded_runs.csv",
+    "runs_to_upload_dir": "/path/to/irida_runs_to_upload",
+    "scan_interval_seconds": 60,
+    "irida_base_url": "https://your.irida.server.ca/irida/api/",
+    "irida_username": "uploader",
+    "irida_password": "s3cr3tpa$$w0rd",
+    "irida_client_id": "uploader",
+    "irida_client_secret": "cli3nts3cr3t",
+    "parser": "directory"
+}
