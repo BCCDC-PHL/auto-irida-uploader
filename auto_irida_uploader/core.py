@@ -31,6 +31,8 @@ def find_run_dirs(config, check_upload_complete=True):
         timestamped_subdirs = list(os.scandir(runs_to_upload_dir))
 
         for timestamped_subdir in timestamped_subdirs:
+            if not os.path.isdir(timestamped_subdir):
+                continue
             run_subdirs = list(os.scandir(timestamped_subdir))
             for subdir in run_subdirs:
                 run_id = subdir.name
