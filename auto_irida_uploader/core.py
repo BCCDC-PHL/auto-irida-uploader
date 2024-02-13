@@ -129,7 +129,7 @@ def check_ready_to_upload(config, run_dir):
         return False
 
 
-def find_run_dirs(config, check_upload_complete=True):
+def find_run_dirs(config):
     """
     Find sequencing run directories under the 'run_parent_dirs' listed in the config.
 
@@ -160,7 +160,6 @@ def find_run_dirs(config, check_upload_complete=True):
                     instrument_type = 'miseq'
                 elif matches_nextseq_regex:
                     instrument_type = 'nextseq'
-                ready_to_upload = check_ready_to_upload(config, os.path.abspath(subdir))
 
                 not_already_uploaded = True
                 irida_uploader_status_path = os.path.join(subdir.path, 'irida_upload_completed.json')
@@ -175,18 +174,18 @@ def find_run_dirs(config, check_upload_complete=True):
                     "is_directory": subdir.is_dir(),
                     "matches_illumina_run_id_format": ((matches_miseq_regex is not None) or
                                                        (matches_nextseq_regex is not None)),
-                    "ready_to_upload": ready_to_upload,
                     "not_already_uploaded": not_already_uploaded,
                     "not_excluded": not_excluded,
                 }
 
-                if check_upload_complete:
+                if all(conditions_checked.values()):
+                    ready_to_upload = check_ready_to_upload(config, os.path.abspath(subdir))
                     conditions_checked["ready_to_upload"] = ready_to_upload
 
                 conditions_met = list(conditions_checked.values())
                 run = {}
                 if all(conditions_met):
-                    logging.info(json.dumps({"event_type": "run_directory_found", "sequencing_run_id": run_id, "run_directory_path": os.path.abspath(subdir.path)}))
+                    logging.info(json.dumps({"event_type": "run_directory_found", "sequencing_run_id": run_id, "run_directory_path": os.path.abspath(subdir.path), "conditions_checked": conditions_checked}))
                     run['path'] = os.path.abspath(subdir.path)
                     run['sequencing_run_id'] = run_id
                     run['instrument_type'] = instrument_type
