@@ -192,7 +192,7 @@ def find_run_dirs(config, check_upload_complete=True):
                     run['instrument_type'] = instrument_type
                     yield run
                 else:
-                    logging.warn(json.dumps({"event_type": "directory_skipped", "run_directory_path": os.path.abspath(subdir.path), "conditions_checked": conditions_checked}))
+                    logging.info(json.dumps({"event_type": "directory_skipped", "run_directory_path": os.path.abspath(subdir.path), "conditions_checked": conditions_checked}))
                     yield None
 
 
