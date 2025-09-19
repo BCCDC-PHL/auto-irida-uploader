@@ -57,19 +57,32 @@ def collect_md5_checksums(run_dir, samplelist_data_by_library_id):
         fastq_forward_path = os.path.join(run_dir, samplelist_data['fastq_forward_filename'])
         fastq_forward_realpath = os.path.realpath(fastq_forward_path)
         fastq_forward_md5 = None
-        with open(fastq_forward_realpath, 'rb') as f:
-            fastq_forward_hash = hashlib.md5()
-            while chunk := f.read(8192):
-                fastq_forward_hash.update(chunk)
-            fastq_forward_md5 = fastq_forward_hash.hexdigest()
+        try:
+            with open(fastq_forward_realpath, 'rb') as f:
+                fastq_forward_hash = hashlib.md5()
+                while chunk := f.read(8192):
+                    fastq_forward_hash.update(chunk)
+                fastq_forward_md5 = fastq_forward_hash.hexdigest()
+        except Exception as e:
+            logging.error(json.dumps({
+                'event_type': 'collect_md5_checksum_failed',
+                'file_path': fastq_forward_path,
+            }))
+
         fastq_reverse_path = os.path.join(run_dir, samplelist_data['fastq_reverse_filename'])
         fastq_reverse_realpath = os.path.realpath(fastq_reverse_path)
         fastq_reverse_md5 = None
-        with open(fastq_reverse_realpath, 'rb') as f:
-            fastq_reverse_hash = hashlib.md5()
-            while chunk := f.read(8192):
-                fastq_reverse_hash.update(chunk)
-            fastq_reverse_md5 = fastq_reverse_hash.hexdigest()
+        try:
+            with open(fastq_reverse_realpath, 'rb') as f:
+                fastq_reverse_hash = hashlib.md5()
+                while chunk := f.read(8192):
+                    fastq_reverse_hash.update(chunk)
+                fastq_reverse_md5 = fastq_reverse_hash.hexdigest()
+        except Exception as e:
+            logging.error(json.dumps({
+                'event_type': 'collect_md5_checksum_failed',
+                'file_path': fastq_reverse_path,
+            }))
 
         md5_checksums_by_library_id[library_id] = {
             'library_id': library_id,
