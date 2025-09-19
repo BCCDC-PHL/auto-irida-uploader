@@ -140,11 +140,15 @@ def find_run_dirs(config):
     :return: Run directory. Keys: ['sequencing_run_id', 'path', 'instrument_type']
     :rtype: Iterator[Optional[dict[str, str]]]
     """
-    miseq_run_id_regex = "\d{6}_M\d{5}_\d+_\d{9}-[A-Z0-9]{5}"
-    nextseq_run_id_regex = "\d{6}_VH\d{5}_\d+_[A-Z0-9]{9}"
+    miseq_run_id_regex = "\\d{6}_M\\d{5}_\\d+_\\d{9}-[A-Z0-9]{5}"
+    nextseq_run_id_regex = "\\d{6}_VH\\d{5}_\\d+_[A-Z0-9]{9}"
     runs_to_upload_dirs = [config['runs_to_upload_dir']]
 
     for runs_to_upload_dir in runs_to_upload_dirs:
+        if not os.path.exists(runs_to_upload_dir):
+            logging.error(json.dumps({"event_type": "upload_dir_does_not_exist", "dir": runs_to_upload_dir}))
+            continue                  
+        
         timestamped_subdirs = list(os.scandir(runs_to_upload_dir))
 
         for timestamped_subdir in timestamped_subdirs:
