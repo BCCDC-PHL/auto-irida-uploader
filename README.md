@@ -1,6 +1,6 @@
 # auto-irida-uploader
 
-Automated upload of sequence data into an [IRIDA](https://irida.ca/) instance. Intended as a companion to the [auto-irida-azure-upload](https://github.com/BCCDC-PHL/auto-irida-azure-upload) tool.
+Automated upload of sequence data into an [IRIDA](https://irida.ca/) instance. Intended as a companion to the [auto-irida-upload-staging](https://github.com/BCCDC-PHL/auto-irida-upload-staging) tool.
 
 ## Usage
 
@@ -29,11 +29,12 @@ The config file should have the following format:
 }
 ```
 
-...where the `excluded_runs_list` is simply a list of sequencing run IDs that should be excluded from uploads:
+...where the `excluded_runs_list` is simply a list of upload IDs that should be skipped when loading into IRIDA.:
 
 ```
-230812_M00123_126_000000000-AG4BE
-230930_VH00234_45_AAE46WTN0
+81520c53-63d9-4ff4-91f4-061ecfe78807
+f99862d1-0de9-43b7-a979-9d1a51423667
+dc0ac452-6fff-48d0-8d2f-d8e06d6880cd
 ```
 
-the `runs_to_upload_dir` should be the directory where azure-based uploads are deposited.
+the `runs_to_upload_dir` should be the directory where BDIP-based uploads are deposited.
