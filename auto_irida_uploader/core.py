@@ -177,9 +177,13 @@ def find_run_dirs(config):
         if 'excluded_runs' in config:
             not_excluded = not upload_id in config['excluded_runs']
 
+        matches_upload_id_format = False
+        if re.match(upload_id_format_regex, upload_id):
+            matches_upload_id_format = True
+            
         conditions_checked = {
             "is_directory": upload_dir.is_dir(),
-            "matches_upload_id_format": re.match(upload_id_format_regex, upload_id),
+            "matches_upload_id_format": matches_upload_id_format,
             "not_already_uploaded": not_already_uploaded,
             "not_excluded": not_excluded,
         }
