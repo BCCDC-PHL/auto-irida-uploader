@@ -153,63 +153,60 @@ def find_run_dirs(config):
     :return: Run directory. Keys: ['sequencing_run_id', 'path', 'instrument_type']
     :rtype: Iterator[Optional[dict[str, str]]]
     """
-    miseq_run_id_regex = "\\d{6}_M\\d{5}_\\d+_\\d{9}-[A-Z0-9]{5}"
-    nextseq_run_id_regex = "\\d{6}_VH\\d{5}_\\d+_[A-Z0-9]{9}"
-    runs_to_upload_dirs = [config['runs_to_upload_dir']]
+    upload_id_format_regex = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    runs_to_upload_dir = config['runs_to_upload_dir']
 
-    for runs_to_upload_dir in runs_to_upload_dirs:
-        if not os.path.exists(runs_to_upload_dir):
-            logging.error(json.dumps({"event_type": "upload_dir_does_not_exist", "dir": runs_to_upload_dir}))
-            continue                  
-        
-        timestamped_subdirs = list(os.scandir(runs_to_upload_dir))
+    if not os.path.exists(runs_to_upload_dir):
+        logging.error(json.dumps({"event_type": "upload_dir_does_not_exist", "dir": runs_to_upload_dir}))
+        yield None
 
-        for timestamped_subdir in timestamped_subdirs:
-            if not os.path.isdir(timestamped_subdir):
-                continue
-            run_subdirs = list(os.scandir(timestamped_subdir))
-            for subdir in run_subdirs:
-                run_id = subdir.name
-                matches_miseq_regex = re.match(miseq_run_id_regex, run_id)
-                matches_nextseq_regex = re.match(nextseq_run_id_regex, run_id)
-                instrument_type = 'unknown'
-                if matches_miseq_regex:
-                    instrument_type = 'miseq'
-                elif matches_nextseq_regex:
-                    instrument_type = 'nextseq'
+    upload_dirs = list(os.scandir(runs_to_upload_dir))
 
-                not_already_uploaded = True
-                irida_uploader_status_path = os.path.join(subdir.path, 'irida_upload_completed.json')
-                if os.path.exists(irida_uploader_status_path):
-                    not_already_uploaded = False
-            
-                not_excluded = True
-                if 'excluded_runs' in config:
-                    not_excluded = not run_id in config['excluded_runs']
+    for upload_dir in upload_dirs:
+        upload_id = os.path.basename(upload_dir)
 
-                conditions_checked = {
-                    "is_directory": subdir.is_dir(),
-                    "matches_illumina_run_id_format": ((matches_miseq_regex is not None) or
-                                                       (matches_nextseq_regex is not None)),
-                    "not_already_uploaded": not_already_uploaded,
-                    "not_excluded": not_excluded,
-                }
+        if not os.path.isdir(upload_dir):
+            continue
 
-                if all(conditions_checked.values()):
-                    ready_to_upload = check_ready_to_upload(config, os.path.abspath(subdir))
-                    conditions_checked["ready_to_upload"] = ready_to_upload
+        not_already_uploaded = True
+        irida_uploader_status_path = os.path.join(upload_dir.path, 'irida_upload_completed.json')
+        if os.path.exists(irida_uploader_status_path):
+            not_already_uploaded = False
 
-                conditions_met = list(conditions_checked.values())
-                run = {}
-                if all(conditions_met):
-                    logging.info(json.dumps({"event_type": "run_directory_found", "sequencing_run_id": run_id, "run_directory_path": os.path.abspath(subdir.path), "conditions_checked": conditions_checked}))
-                    run['path'] = os.path.abspath(subdir.path)
-                    run['sequencing_run_id'] = run_id
-                    run['instrument_type'] = instrument_type
-                    yield run
-                else:
-                    logging.info(json.dumps({"event_type": "directory_skipped", "run_directory_path": os.path.abspath(subdir.path), "conditions_checked": conditions_checked}))
-                    yield None
+        not_excluded = True
+        if 'excluded_runs' in config:
+            not_excluded = not upload_id in config['excluded_runs']
+
+        conditions_checked = {
+            "is_directory": upload_dir.is_dir(),
+            "matches_upload_id_format": re.match(upload_id_format_regex, upload_id),
+            "not_already_uploaded": not_already_uploaded,
+            "not_excluded": not_excluded,
+        }
+
+        if all(conditions_checked.values()):
+            ready_to_upload = check_ready_to_upload(config, os.path.abspath(upload_dir))
+            conditions_checked["ready_to_upload"] = ready_to_upload
+
+        conditions_met = list(conditions_checked.values())
+        run = {}
+        if all(conditions_met):
+            logging.info(json.dumps({
+                "event_type": "run_directory_found",
+                "upload_id": upload_id,
+                "upload_directory_path": os.path.abspath(upload_dir.path),
+                "conditions_checked": conditions_checked,
+            }))
+            run['path'] = os.path.abspath(upload_dir.path)
+            run['upload_id'] = upload_id
+            yield run
+        else:
+            logging.info(json.dumps({
+                "event_type": "directory_skipped",
+                "upload_directory_path": os.path.abspath(upload_dir.path),
+                "conditions_checked": conditions_checked
+            }))
+            yield None
 
 
 def validate_samplelist(config, run):
