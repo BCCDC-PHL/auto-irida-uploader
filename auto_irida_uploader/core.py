@@ -196,7 +196,7 @@ def find_run_dirs(config):
         run = {}
         if all(conditions_met):
             logging.info(json.dumps({
-                "event_type": "run_directory_found",
+                "event_type": "upload_directory_found",
                 "upload_id": upload_id,
                 "upload_directory_path": os.path.abspath(upload_dir.path),
                 "conditions_checked": conditions_checked,
@@ -261,7 +261,7 @@ def upload_run(config, run):
     """
     Initiate an analysis on one directory of fastq files.
     """
-    run_id = run['sequencing_run_id']
+    upload_id = run['upload_id']
     upload_dir = run['path']
     upload_successful = False
 
@@ -277,23 +277,17 @@ def upload_run(config, run):
         '--directory', upload_dir,
     ]
 
-    logging.info(json.dumps({"event_type": "upload_started", "sequencing_run_id": run_id, "irida_uploader_command": " ".join(irida_uploader_command)}))
+    logging.info(json.dumps({"event_type": "upload_started", "upload_id": upload_id, "irida_uploader_command": " ".join(irida_uploader_command)}))
     try:
         upload_result = subprocess.run(irida_uploader_command, capture_output=False, check=True, text=True)
         upload_successful = True
-        logging.info(json.dumps({"event_type": "upload_completed", "sequencing_run_id": run_id, "irida_uploader_command": " ".join(irida_uploader_command)}))
+        logging.info(json.dumps({"event_type": "upload_completed", "upload_id": upload_id, "irida_uploader_command": " ".join(irida_uploader_command)}))
     except subprocess.CalledProcessError as e:
-        logging.error(json.dumps({"event_type": "upload_failed", "sequencing_run_id": run_id, "irida_uploader_command": " ".join(irida_uploader_command)}))
+        logging.error(json.dumps({"event_type": "upload_failed", "upload_id": upload_id, "irida_uploader_command": " ".join(irida_uploader_command)}))
 
     if upload_successful:
-        upload_parent_dir = os.path.dirname(upload_dir)
-        if os.path.exists(upload_parent_dir):
-            # Commented out 2023-11-06 by dfornika <dan.fornika@bccdc.ca>
-            # for troubleshooting multiple-upload issue
-            # shutil.rmtree(upload_parent_dir)
-            # logging.info(json.dumps({"event_type": "directory_deleted", "directory_path": upload_parent_dir}))
-            irida_upload_completed_path = os.path.join(upload_dir, 'irida_upload_completed.json')
-            irida_upload_completed_contents = {}
-            with open(irida_upload_completed_path, 'w') as f:
-                json.dump(irida_upload_completed_contents, f, indent=2)
-                f.write('\n')
+        irida_upload_completed_path = os.path.join(upload_dir, 'irida_upload_completed.json')
+        irida_upload_completed_contents = {}
+        with open(irida_upload_completed_path, 'w') as f:
+            json.dump(irida_upload_completed_contents, f, indent=2)
+            f.write('\n')
