@@ -219,7 +219,7 @@ def validate_samplelist(config, run):
 
     :param config: Application config.
     :type config: dict[str, object]
-    :param run: Run directory. Keys: ['sequencing_run_id', 'path', 'instrument_type']
+    :param run: Run directory. Keys: ['upload_id', 'path',]
     :type run: dict[str, str]
     :return: True if the sample list is valid, False otherwise.
     :rtype: bool
@@ -234,9 +234,9 @@ def validate_samplelist(config, run):
             header_line = header_line.replace("'", '')
             if header_line == '[Data]':
                 samplelist_is_valid = True
-                logging.info(json.dumps({"event_type": "samplelist_valid", "sequencing_run_id": run['sequencing_run_id'], "samplelist_path": samplelist_path}))
+                logging.info(json.dumps({"event_type": "samplelist_valid", "upload_id": run['upload_id'], "samplelist_path": samplelist_path}))
     else:
-        logging.error(json.dumps({"event_type": "samplelist_missing", "sequencing_run_id": run['sequencing_run_id'], "samplelist_path": samplelist_path}))
+        logging.error(json.dumps({"event_type": "samplelist_missing", "upload_id": run['upload_id'], "samplelist_path": samplelist_path}))
 
     return samplelist_is_valid
             
