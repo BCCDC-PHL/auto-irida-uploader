@@ -51,9 +51,8 @@ def main():
             scan_start_timestamp = datetime.datetime.now()
             for run in core.scan(config):
                 required_run_keys = [
-                    'sequencing_run_id',
+                    'upload_id',
                     'path',
-                    'instrument_type',
                 ]
                 if run is not None and all([k in run for k in required_run_keys]):
                     try:
