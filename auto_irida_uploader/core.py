@@ -160,6 +160,7 @@ def find_run_dirs(config):
         logging.error(json.dumps({"event_type": "upload_dir_does_not_exist", "dir": runs_to_upload_dir}))
         yield None
 
+    upload_dirs = []
     try:
         upload_dirs = list(os.scandir(runs_to_upload_dir))
     except Exception as e:
