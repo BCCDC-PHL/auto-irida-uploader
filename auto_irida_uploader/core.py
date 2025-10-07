@@ -164,7 +164,7 @@ def find_run_dirs(config):
     try:
         upload_dirs = list(os.scandir(runs_to_upload_dir))
     except Exception as e:
-        logging.error(json.dumps({"event_type": "failed_to_list_upload_dirs", "dir": runs_to_upload_dir}))
+        logging.error(json.dumps({"event_type": "failed_to_list_upload_dirs", "dir": runs_to_upload_dir, "error_message": str(e)}))
         yield None
 
     for upload_dir in upload_dirs:
